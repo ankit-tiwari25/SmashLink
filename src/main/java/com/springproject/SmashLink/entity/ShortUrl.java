@@ -31,5 +31,4 @@ public class ShortUrl extends AuditClass{
     private Boolean isPrivate;
 
     private LocalDateTime expiresAt;
-
 }
