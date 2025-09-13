@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="en"
-    xmlns:th = "www.thymeleaf.org">
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
     <meta charset="UTF-8">
-    <title>URL Shortner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
 </head>
 <body>
-    <h1 th:text = "${title}">URL Shortner</h1>
+<div layout:fragment="content">
+    <div class="jumbotron bg-light p-5 rounded-3 my-4">
+        <p class="lead">A simple URL shortener service. Create short, easy-to-share links.</p>
+    </div>
+</div>
 </body>
 </html>
