@@ -23,9 +23,9 @@ public class User extends  AuditClass{
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private Role role;
+//    @Column(nullable = false)
+//    @Enumerated(EnumType.STRING)
+//    private Role role;
 
 
 
