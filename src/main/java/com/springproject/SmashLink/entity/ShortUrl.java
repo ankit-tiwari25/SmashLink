@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ShortUrl extends AuditClass{
-
     @Id
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,7 +22,7 @@ public class ShortUrl extends AuditClass{
     @Column(unique = true, nullable = false)
     private String shortKey;
 
-    @Column( nullable = false)
+    @Column(nullable = false)
     private  String originalURL;
 
     private Long clickCount;

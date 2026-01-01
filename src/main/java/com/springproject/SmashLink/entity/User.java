@@ -14,6 +14,8 @@ public class User extends  AuditClass{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private  Long id;
 
+    private String UUID;
+
     @Column(unique = true, nullable = false)
     private String email;
 
@@ -21,12 +23,10 @@ public class User extends  AuditClass{
     private String password;
 
     @Column(nullable = false)
-    private String name;
+    private String fullName;
 
-//    @Column(nullable = false)
-//    @Enumerated(EnumType.STRING)
-//    private Role role;
-
-
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
 }
