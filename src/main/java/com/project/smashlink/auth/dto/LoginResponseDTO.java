@@ -1,4 +1,4 @@
-package com.project.smashlink.auth;
+package com.project.smashlink.auth.dto;
 
 import lombok.*;
 
