@@ -23,12 +23,21 @@ public class JwtUtil {
     }
 
     public String generateToken(String email, String role){
+//        return Jwts.builder()
+//                .subject(email)
+//                .claim("role", role)
+//                .issuedAt(new Date())
+//                .expiration(new Date(System.currentTimeMillis() + expiryMs))
+//                .signWith(getSigningKey())
+//                .compact();
+
+
         return Jwts.builder()
                 .subject(email)
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiryMs))
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS512) // ← explicitly HS512
                 .compact();
     }
 
@@ -49,7 +58,17 @@ public class JwtUtil {
         }
     }
 
-    private Claims extractClaims(String token){
+//    private Claims extractClaims(String token){
+////        return Jwts.parser()
+////                .verifyWith(getSigningKey())
+////                .build()
+////                .parseSignedClaims(token)
+////                .getPayload();
+//
+//
+//    }
+
+    private Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()

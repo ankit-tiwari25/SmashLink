@@ -1,6 +1,8 @@
 package com.project.smashlink.admin.controller;
 
 
+import com.project.smashlink.url.dto.UrlResponseDTO;
+import com.project.smashlink.url.service.UrlService;
 import com.project.smashlink.user.dto.request.UpdateUserStatusDTO;
 import com.project.smashlink.user.dto.response.UserResponseDTO;
 import com.project.smashlink.user.service.UserService;
@@ -20,6 +22,8 @@ public class AdminController {
 
     private final UserService userService;
 
+    private final UrlService urlService;
+
     @GetMapping("/users")
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(@RequestParam(defaultValue = "0") int page,
                                                              @RequestParam(defaultValue = "10") int size,
@@ -38,5 +42,13 @@ public class AdminController {
         return ResponseEntity.ok(userService.updateUserStatus(userId, updateUserStatusDTO));
     }
 
+
+    @GetMapping("/users/{userId}/urls")
+    public ResponseEntity<Page<UrlResponseDTO>> getUserUrls(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+        return ResponseEntity.ok(urlService.getUserUrlsByAdmin(userId, page,size));
+    }
 
 }
