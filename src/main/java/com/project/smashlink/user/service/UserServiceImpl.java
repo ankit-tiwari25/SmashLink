@@ -5,28 +5,31 @@ import com.project.smashlink.user.dto.response.UserResponseDTO;
 import com.project.smashlink.user.entity.User;
 import com.project.smashlink.user.enums.Role;
 import com.project.smashlink.user.enums.UserStatus;
-import com.project.smashlink.user.exception.CustomUserException;
+import com.project.smashlink.exception.CustomUserException;
 import com.project.smashlink.user.repository.UserRepository;
-import jdk.jshell.spi.ExecutionControl;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository,  PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
     @Override
     public UserResponseDTO registerUser(RegisterRequestDTO requestDTO) {
         if(userRepository.existsByEmail(requestDTO.getEmail())) {
-            throw new CustomUserException("Email already exists" + requestDTO.getEmail());
+            throw new CustomUserException("Email already exists : " + requestDTO.getEmail());
         }
 
         User user =  User.builder()
                 .name(requestDTO.getName())
                 .email(requestDTO.getEmail())
-                .password(requestDTO.getPassword()) // plain text for now
+                .password(passwordEncoder.encode(requestDTO.getPassword()))
                 .role(Role.ROLE_USER)
                 .status(UserStatus.ACTIVE)
                 .build();
