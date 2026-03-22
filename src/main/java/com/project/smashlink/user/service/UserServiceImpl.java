@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,12 +24,13 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
     @Value("${admin.registration.secret}")
     private String adminSecret;
+
+
 
     @Override
     public UserResponseDTO registerUser(RegisterRequestDTO requestDTO) {

@@ -13,16 +13,20 @@ import com.project.smashlink.user.repository.UserRepository;
 import com.project.smashlink.util.Base62Util;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UrlServiceImpl  implements  UrlService {
@@ -31,6 +35,12 @@ public class UrlServiceImpl  implements  UrlService {
     private final UserRepository userRepository;
     private final Base62Util base62Util;
     private final UrlEventPublisher urlEventPublisher;
+
+    private final RedisTemplate<String, Object> redisTemplate;
+    @Value("${cache.url.ttl.minutes}")
+    private long ttlMinutes;
+
+    private static final String CACHE_PREFIX = "url";
 
     @Value("${notification.hit.limit.threshold}")
     private int hitLimitThreshold;
@@ -68,6 +78,18 @@ public class UrlServiceImpl  implements  UrlService {
     @Transactional
     public String resolveShortCode(String shortCode) {
 
+        String cacheKey = CACHE_PREFIX + shortCode;
+
+        String cachedUrl = (String) redisTemplate.opsForValue().get(cacheKey);
+        if(cachedUrl != null) {
+            log.info("Cache HIT for shortCode : {}", shortCode);
+            updateHitCountAndNotify(shortCode);
+            return cachedUrl;
+
+        }
+
+        log.info("Cache MISS for shortCode : {}", shortCode);
+
         /*   --------REDIRECT KARNA HAI--- */
         Url url = findByShortCode(shortCode);
 
@@ -104,6 +126,9 @@ public class UrlServiceImpl  implements  UrlService {
                 publishEvent(url, UrlEventType.HIT_LIMIT_NEARING);
             }
         }
+
+        redisTemplate.opsForValue().set(cacheKey, url.getOriginalUrl(), Duration.ofMinutes(ttlMinutes));
+
         return url.getOriginalUrl();
     }
 
@@ -139,6 +164,10 @@ public class UrlServiceImpl  implements  UrlService {
         if(!isOwner && !isAdmin){
             throw new AppException("Access Denied", HttpStatus.FORBIDDEN);
         }
+
+        String cacheKey =  CACHE_PREFIX + shortCode;
+        redisTemplate.delete(cacheKey);
+        log.info("Cache DELETED for shortCode : {}", shortCode);
 
         urlRepository.delete(url);
     }
@@ -181,6 +210,31 @@ public class UrlServiceImpl  implements  UrlService {
         );
 
         urlEventPublisher.publish(event);
+    }
+
+    @Transactional
+    private void updateHitCountAndNotify(String shortCode){
+        Url url = findByShortCode(shortCode);
+
+        if(url.getExpiresAt() != null && url.getExpiresAt().isBefore(LocalDateTime.now())){
+            publishEvent(url, UrlEventType.URL_EXPIRED);
+            throw new AppException("This short URL has expired", HttpStatus.GONE);
+        }
+
+        if(url.getHitLimit() != null && url.getHitCount() >= url.getHitLimit()){
+            publishEvent(url, UrlEventType.HIT_LIMIT_EXHAUSTED);
+            throw new AppException("This short URL has reached its hit limit!", HttpStatus.GONE);
+        }
+
+        url.setHitCount(url.getHitCount() + 1);
+        urlRepository.save(url);
+
+        if(url.getHitLimit() != null){
+            long percentage = (url.getHitCount() * 100) /  url.getHitLimit();
+            if(percentage >= hitLimitThreshold){
+                publishEvent(url, UrlEventType.HIT_LIMIT_NEARING);
+            }
+        }
     }
 
 }
