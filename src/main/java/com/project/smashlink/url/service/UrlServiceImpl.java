@@ -1,6 +1,9 @@
 package com.project.smashlink.url.service;
 
 import com.project.smashlink.exception.AppException;
+import com.project.smashlink.notification.event.UrlEvent;
+import com.project.smashlink.notification.event.UrlEventType;
+import com.project.smashlink.notification.publisher.UrlEventPublisher;
 import com.project.smashlink.url.dto.ShortenRequestDTO;
 import com.project.smashlink.url.dto.UrlResponseDTO;
 import com.project.smashlink.url.entity.Url;
@@ -27,6 +30,10 @@ public class UrlServiceImpl  implements  UrlService {
     private final UrlRepository urlRepository;
     private final UserRepository userRepository;
     private final Base62Util base62Util;
+    private final UrlEventPublisher urlEventPublisher;
+
+    @Value("${notification.hit.limit.threshold}")
+    private int hitLimitThreshold;
 
     private static final String BASE_URL = "https://smashlink.io/redirect/";
 
@@ -66,16 +73,37 @@ public class UrlServiceImpl  implements  UrlService {
 
         // Check expiry
         if(url.getExpiresAt() != null && url.getExpiresAt().isBefore(LocalDateTime.now())){
+            publishEvent(url, UrlEventType.URL_EXPIRED);
             throw new AppException("This short URL has expired", HttpStatus.GONE);
         }
 
+
+        // Check expiring nearing - within 24 hours
+        if(url.getExpiresAt() != null &&
+                url.getExpiresAt().isAfter(LocalDateTime.now()) &&
+                url.getExpiresAt().isBefore(LocalDateTime.now().plusHours(24))){
+            publishEvent(url, UrlEventType.URL_EXPIRY_NEARING);
+        }
+
+
+
         // Check hit limit
         if(url.getHitLimit() != null && url.getHitCount() >= url.getHitLimit()){
+            publishEvent(url, UrlEventType.HIT_LIMIT_EXHAUSTED);
             throw new AppException("This short URL has reached its hit limit!", HttpStatus.GONE);
         }
 
+
         url.setHitCount(url.getHitCount() + 1);
         urlRepository.save(url);
+
+        // Check if hit limit nearing - after incrementing
+        if(url.getHitLimit() != null){
+            long percentage = (url.getHitCount() * 100) /  url.getHitLimit();
+            if(percentage >= hitLimitThreshold){
+                publishEvent(url, UrlEventType.HIT_LIMIT_NEARING);
+            }
+        }
         return url.getOriginalUrl();
     }
 
@@ -140,6 +168,19 @@ public class UrlServiceImpl  implements  UrlService {
 
     private Url findByShortCode(String shortCode) {
         return urlRepository.findByShortCode(shortCode).orElseThrow(() -> new AppException("Short URL not found: ", HttpStatus.FORBIDDEN));
+    }
+
+    private void publishEvent(Url url, UrlEventType eventType) {
+        UrlEvent event = new UrlEvent(
+                url.getUser().getEmail(),
+                url.getShortCode(),
+                url.getOriginalUrl(),
+                eventType,
+                url.getHitCount(),
+                url.getHitLimit()
+        );
+
+        urlEventPublisher.publish(event);
     }
 
 }
