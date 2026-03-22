@@ -13,6 +13,7 @@ import com.project.smashlink.user.repository.UserRepository;
 import com.project.smashlink.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequestDTO) {
+        log.info("Login attempt for email: {}", loginRequestDTO.getEmail());
         try{
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -45,6 +48,8 @@ public class AuthController {
             );
 
         }catch (BadCredentialsException e){
+            log.warn("Login failed — invalid credentials for email: {}",
+                    loginRequestDTO.getEmail());
             throw new AppException("Invalid email or password", HttpStatus.UNAUTHORIZED);
 
         }
@@ -53,7 +58,8 @@ public class AuthController {
                 .orElseThrow(() -> new CustomUserException("User not found"));
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
-
+        log.info("Login successful — email: {}, role: {}",
+                user.getEmail(), user.getRole());
         return ResponseEntity.ok(LoginResponseDTO.builder()
                 .token(token)
                 .email(user.getEmail())
@@ -63,6 +69,7 @@ public class AuthController {
 
     @PostMapping("/admin/register")
     public ResponseEntity<UserResponseDTO> registerAdmin(@Valid @RequestBody AdminRegisterRequestDTO request) {
+        log.info("Admin registration request for email: {}", request.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerAdmin(request));
     }
 }

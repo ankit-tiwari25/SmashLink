@@ -66,6 +66,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 return;
             }
         }
+        log.debug("Rate limit passed — IP: {}, path: {}, remaining: {}",
+                ip, path, ipProbe.getRemainingTokens());
 
         response.addHeader("X-RateLimit-Limit", "10");
         response.addHeader("X-RateLimit-Remaining", String.valueOf(ipProbe.getRemainingTokens()));

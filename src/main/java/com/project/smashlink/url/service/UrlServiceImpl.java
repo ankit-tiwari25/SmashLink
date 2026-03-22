@@ -50,6 +50,8 @@ public class UrlServiceImpl  implements  UrlService {
     @Override
     @Transactional
     public UrlResponseDTO shortenUrl(ShortenRequestDTO request, String email) {
+        log.info("Shortening URL for user: {} | originalUrl: {}",
+                email, request.getOriginalUrl());
         User user = findUserByEmail(email);
 
         // First save with placeholder shortCode
@@ -69,6 +71,9 @@ public class UrlServiceImpl  implements  UrlService {
         savedUrl.setShortCode(shortCode);
 
         Url updatedUrl = urlRepository.save(savedUrl);
+
+        log.info("URL shortened successfully — shortCode: {}, user: {}",
+                updatedUrl.getShortCode(), email);
         return mapToDTO(updatedUrl);
     }
 
@@ -77,6 +82,7 @@ public class UrlServiceImpl  implements  UrlService {
     @Override
     @Transactional
     public String resolveShortCode(String shortCode) {
+        log.debug("Resolving shortCode: {}", shortCode);
 
         String cacheKey = CACHE_PREFIX + shortCode;
 
@@ -129,6 +135,8 @@ public class UrlServiceImpl  implements  UrlService {
 
         redisTemplate.opsForValue().set(cacheKey, url.getOriginalUrl(), Duration.ofMinutes(ttlMinutes));
 
+        log.debug("Redirect successful — shortCode: {} → {}",
+                shortCode, url.getOriginalUrl());
         return url.getOriginalUrl();
     }
 
@@ -155,6 +163,8 @@ public class UrlServiceImpl  implements  UrlService {
 
     @Override
     public void deleteUrl(String shortCode, String email) {
+        log.info("Delete URL request — shortCode: {}, requestedBy: {}",
+                shortCode, email);
         Url url = findByShortCode(shortCode);
         User requester = findUserByEmail(email);
 
@@ -168,6 +178,7 @@ public class UrlServiceImpl  implements  UrlService {
         String cacheKey =  CACHE_PREFIX + shortCode;
         redisTemplate.delete(cacheKey);
         log.info("Cache DELETED for shortCode : {}", shortCode);
+        log.info("URL deleted — shortCode: {}, deletedBy: {}", shortCode, email);
 
         urlRepository.delete(url);
     }
