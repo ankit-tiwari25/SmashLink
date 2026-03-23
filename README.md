@@ -85,7 +85,7 @@ smashlink/
 └── src/main/resources/
     └── application.properties
 ```
-
+<!--
 ---
 
 ## ⚙️ Setup & Installation
@@ -168,7 +168,7 @@ App runs at: `http://localhost:8080`
 4. Paste the 16-character password in `spring.mail.password`
 
 ---
-
+-->
 ## 📡 API Reference
 
 ### Auth
